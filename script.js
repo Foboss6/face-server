@@ -23,7 +23,7 @@ const database = {
       joined: new Date()
     },
     {
-      id: 11,
+      id: Date.now(),
       name: '11',
       email: '11@i.ua',
       password: '$2a$10$JJzFbngluFiMkp4uN7Wku.a/i3hJ14GH4GaPHfKveuOCj5xnIwPpi',
@@ -112,17 +112,23 @@ app.post('/register', (req, res) => {
         joined: new Date()
       }
       database.users.push(user);
-      // delete user.password;
     })
       // send respond with answer to front-end
-    .then(() => res.status(200).json(user))
+    .then(() => res.status(200).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      entries: user.entries,
+      joined: user.joined,
+    }))
     .catch((err) => {
       console.log(err);
     });  
 });
 
 // PROFILE --> GET => user id
-app.get('/profile/:id', (req, res) => {
+// maybe we'll use it in future
+app.put('/profile/:id', (req, res) => {
   const { id } = req.params;
   let found = false;
   database.users.forEach(user => {
@@ -139,8 +145,6 @@ app.put('/image', (req, res) => {
   const { id } = req.body;
   let found = false;
   database.users.forEach(user => {
-    console.log(id);
-    console.log(user.id);
     if(user.id === id) {
       found = true;
       user.entries++;
@@ -149,12 +153,5 @@ app.put('/image', (req, res) => {
   });
   if(!found) res.status(404).json('No such user');
 })
-
-// let scryptedPassword;
-// bcrypt.hash(database.users[2].password, 10, (err, hash) => {
-//   scryptedPassword = hash;
-//   console.log('1', scryptedPassword);
-// });
-// console.log('2', scryptedPassword);
 
 app.listen(3001, ()=>{console.log('server is runnig')});
