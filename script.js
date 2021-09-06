@@ -1,14 +1,13 @@
 import express from 'express';
-// import bcrypt from 'bcrypt-nodejs';
 import bcrypt from 'bcryptjs';
-// const bcrypt = require('bcryptjs');
-// const bcrypt = require('bcrypt-nodejs');
+import cors from 'cors';
+
 const app = express();
 
 const database = {
   users: [
     {
-      id: '1',
+      id: Date.now(),
       name: 'Ivan',
       email: 'ivan@gmail.com',
       password: '$2a$10$E9oXC9EvdJFaag7YS7pJRe6gZesdNk/hwZeVdi3d.tyWQzYxqhFjG',
@@ -16,18 +15,27 @@ const database = {
       joined: new Date()
     },
     {
-      id: '2',
+      id: Date.now(),
       name: 'Yana',
       email: 'yana@gmail.com',
       password: '$2a$10$nmZjOyoudnDXHCMott57tOanE9kG61jo7xWTaEQhehksH6s6hboKW',
       entries: 0,
       joined: new Date()
-    }
+    },
+    {
+      id: Date.now(),
+      name: '11',
+      email: '11@i.ua',
+      password: '$2a$10$JJzFbngluFiMkp4uN7Wku.a/i3hJ14GH4GaPHfKveuOCj5xnIwPpi',
+      entries: 0,
+      joined: new Date()
+    },
   ]
 }
 
 // MIDDLEWIRE
 app.use(express.json());
+app.use(cors());
 
 // ******* BCRYPT section ******************************
 // generate a random salt
@@ -75,17 +83,19 @@ app.post('/signin', (req, res) => {
   for(const el of database.users) {
     if(req.body.email.toLowerCase() === el.email 
       && bcrypt.compareSync(req.body.password, el.password)) {
-        res.json(`Welcome,  ${el.name}`);
+        el.entries++;
+        res.json(el);
         found = true;
         break;
       }
   }
-  if(!found) res.status(400).json(`I don't know you`);
+  if(!found) res.status(400).json(`Error signin`);
 });
 
 // REGISTER --> POST => success
 app.post('/register', (req, res) => {
   const { name, email, password} = req.body;
+  let user = {};
 
   // generating hash for new user's password
   genSalt(password)
@@ -94,19 +104,19 @@ app.post('/register', (req, res) => {
     })
     .then((result) => {
       // store new user's data in local database
-      database.users.push(
-        {
-          id: '3',
-          name: name,
-          email: email.toLowerCase(),
-          password: result.hash,
-          entries: 0,
-          joined: new Date()
-        }
-      );
+      user = {
+        id: Date.now(),
+        name: name,
+        email: email.toLowerCase(),
+        password: result.hash,
+        entries: 0,
+        joined: new Date()
+      }
+      database.users.push(user);
+      // delete user.password;
     })
       // send respond with answer to front-end
-    .then(() => {res.status(200).json(`Congratulations, ${name}! You are registered!`);})
+    .then(() => res.status(200).json(user))
     .catch((err) => {
       console.log(err);
     });  
@@ -140,10 +150,10 @@ app.put('/image', (req, res) => {
 })
 
 // let scryptedPassword;
-// bcrypt.hash(database.users[0].password, 10, (err, hash) => {
+// bcrypt.hash(database.users[2].password, 10, (err, hash) => {
 //   scryptedPassword = hash;
 //   console.log('1', scryptedPassword);
 // });
 // console.log('2', scryptedPassword);
 
-app.listen(3000, ()=>{console.log('server is runnig')});
+app.listen(3001, ()=>{console.log('server is runnig')});
