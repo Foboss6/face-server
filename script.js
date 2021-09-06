@@ -23,7 +23,7 @@ const database = {
       joined: new Date()
     },
     {
-      id: Date.now(),
+      id: 11,
       name: '11',
       email: '11@i.ua',
       password: '$2a$10$JJzFbngluFiMkp4uN7Wku.a/i3hJ14GH4GaPHfKveuOCj5xnIwPpi',
@@ -83,7 +83,6 @@ app.post('/signin', (req, res) => {
   for(const el of database.users) {
     if(req.body.email.toLowerCase() === el.email 
       && bcrypt.compareSync(req.body.password, el.password)) {
-        el.entries++;
         res.json(el);
         found = true;
         break;
@@ -140,6 +139,8 @@ app.put('/image', (req, res) => {
   const { id } = req.body;
   let found = false;
   database.users.forEach(user => {
+    console.log(id);
+    console.log(user.id);
     if(user.id === id) {
       found = true;
       user.entries++;
