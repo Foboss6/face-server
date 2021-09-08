@@ -93,7 +93,7 @@ app.post('/register', (req, res) => {
     db('login').insert({
       hash: result.hash,
       email: email.toLowerCase(),
-    }).then(console.log);
+    }).catch(err => res.status(400).json(err));
   })
   .then(() => {
     // store new user's data into database
