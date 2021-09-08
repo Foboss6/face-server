@@ -1,37 +1,20 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import cors from 'cors';
+import knex from 'knex';
+
+const db = knex({
+  client: 'pg',
+  connection: {
+    host : '127.0.0.1',
+    port : 5432,
+    user : 'postgres',
+    password : '123',
+    database : 'postgres'
+  }
+});
 
 const app = express();
-
-const database = {
-  users: [
-    {
-      id: Date.now(),
-      name: 'Ivan',
-      email: 'ivan@gmail.com',
-      password: '$2a$10$E9oXC9EvdJFaag7YS7pJRe6gZesdNk/hwZeVdi3d.tyWQzYxqhFjG',
-      entries: 0,
-      joined: new Date()
-    },
-    {
-      id: Date.now(),
-      name: 'Yana',
-      email: 'yana@gmail.com',
-      password: '$2a$10$nmZjOyoudnDXHCMott57tOanE9kG61jo7xWTaEQhehksH6s6hboKW',
-      entries: 0,
-      joined: new Date()
-    },
-    {
-      id: Date.now(),
-      name: '11',
-      email: '11@i.ua',
-      password: '$2a$10$JJzFbngluFiMkp4uN7Wku.a/i3hJ14GH4GaPHfKveuOCj5xnIwPpi',
-      entries: 0,
-      joined: new Date()
-    },
-  ]
-}
 
 // MIDDLEWIRE
 app.use(express.json());
@@ -74,84 +57,92 @@ const genHash = (salt, password) => {
 
 // ROOT
 app.get('/', (req, res) => {
-  res.json(database.users);
+  db.select('*').from('users')
+  .then((users => res.status(200).json(users)))
+  .catch(err => res.status(400).json('Error in getting data from database'));
 });
 
 // SIGNIN --> POST => signin/fail
 app.post('/signin', (req, res) => {
-  let found = false;
-  for(const el of database.users) {
-    if(req.body.email.toLowerCase() === el.email 
-      && bcrypt.compareSync(req.body.password, el.password)) {
-        res.json(el);
-        found = true;
-        break;
-      }
-  }
-  if(!found) res.status(400).json(`Error signin`);
+  db.select('email', 'hash')
+  .from('login')
+  .where('email', '=', req.body.email.toLowerCase())
+  .then((data) => {
+    if(bcrypt.compareSync(req.body.password, data[0].hash)) {
+      return db.select('*')
+      .from('users')
+      .where('email', '=', data[0].email)
+      .then(user => res.status(200).json(user[0]))
+      .catch(err => res.status(400).json('Error in database'));
+    } else res.status(404).json('No such user');
+  })
+  .catch(err => res.status(400).json('Invalid email'));
 });
 
 // REGISTER --> POST => success
 app.post('/register', (req, res) => {
   const { name, email, password} = req.body;
-  let user = {};
 
   // generating hash for new user's password
   genSalt(password)
-    .then((result) => {
-      return genHash(result.salt, result.password);
+  .then((result) => {
+    return genHash(result.salt, result.password);
+  })
+  .then((result) => {
+    // store new user's password into database
+    db('login').insert({
+      hash: result.hash,
+      email: email.toLowerCase(),
+    }).then(console.log);
+  })
+  .then(() => {
+    // store new user's data into database
+    db('users')
+    .returning('*')
+    .insert({
+      name: name,
+      email: email.toLowerCase(),
+      joined: new Date()
     })
-    .then((result) => {
-      // store new user's data in local database
-      user = {
-        id: Date.now(),
-        name: name,
-        email: email.toLowerCase(),
-        password: result.hash,
-        entries: 0,
-        joined: new Date()
-      }
-      database.users.push(user);
-    })
-      // send respond with answer to front-end
-    .then(() => res.status(200).json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      entries: user.entries,
-      joined: user.joined,
-    }))
-    .catch((err) => {
-      console.log(err);
-    });  
+    // send respond with answer to front-end
+    .then((user) => res.status(200).json(user[0]))
+    .catch(err => res.status(400).json(err));
+  })
+  .catch(err => res.status(400).json(err));
+      
 });
 
 // PROFILE --> GET => user id
 // maybe we'll use it in future
 app.put('/profile/:id', (req, res) => {
   const { id } = req.params;
-  let found = false;
-  database.users.forEach(user => {
-    if(user.id === id) {
-      found = true;
-      return res.status(200).json(user);
-    };
-  });
-  if(!found) res.status(404).json('No such user');
+
+  db.select('*').from('users').where({id: id})
+  .then(data => {
+    if(data.length) {
+      res.status(200).json(data[0]);
+    } else {
+      res.status(404).json('Not found such user');
+    }
+  })
+  .catch(err => res.status(400).json('Error in getting data from database'));
 });
 
 // IMAGE --> PUT => entries
 app.put('/image', (req, res) => {
   const { id } = req.body;
-  let found = false;
-  database.users.forEach(user => {
-    if(user.id === id) {
-      found = true;
-      user.entries++;
-      return res.status(200).json(user.entries);
-    };
-  });
-  if(!found) res.status(404).json('No such user');
+
+  db('users').where({id})
+  .increment('entries', 1)
+  .returning('entries')
+  .then(data => {
+    if(data.length) {
+      res.status(200).json(data[0]);
+    } else {
+      res.status(404).json('Not found such user');
+    }
+  })
+  .catch(err => res.status(400).json('Error in getting data from database'));
 })
 
 app.listen(3001, ()=>{console.log('server is runnig')});
