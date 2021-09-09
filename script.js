@@ -56,6 +56,13 @@ app.put('/image', (req, res) => { handleImage(req, res, db) });
 // maybe we'll use it in future
 app.put('/profile/:id',  handleProfile(db));
 
+// ROOT only for control the users amount
+app.get('/', (req, res) => {
+  db.select('*').from('users')
+  .then(data => res.status(200).json(data))
+  .catch(err => res.status(400).json('Error in getting data from database'));
+})
+
 app.listen(PORT || 3000, ()=>{
   console.log(`server is listening on port: ${PORT}`)
 });
