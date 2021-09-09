@@ -15,8 +15,6 @@ const PORT = process.env.PORT;
 // To see a list all environment variables make
 // Get-ChildItem Env:    or     Get-ChildItem Env:PORT
 
-// process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
-
 // for local database
 // const db = knex({
 //   client: 'pg',
@@ -28,6 +26,8 @@ const PORT = process.env.PORT;
 //     database : 'postgres'
 //   }
 // });
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
 const db = knex({
   client: 'pg',
