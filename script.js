@@ -27,6 +27,7 @@ const PORT = process.env.PORT;
 //   }
 // });
 
+// Its for fix poblem with using free Heroku database 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
 const db = knex({
